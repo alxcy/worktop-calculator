@@ -1,6 +1,6 @@
 // src/WorktopCalculator.tsx
 import React, { useState, useMemo, ChangeEvent } from "react";
-import { Save, FileDown, Plus, X } from "lucide-react";
+import { Save, FileDown, Plus, X, ChevronDown, ChevronUp } from "lucide-react";
 import { jsPDF } from "jspdf";
 
 // Define an interface for a single worktop entry
@@ -24,6 +24,7 @@ const WorktopCalculator: React.FC = () => {
   const [worktops, setWorktops] = useState<Worktop[]>([
     { id: 1, length: "", width: "", useCustomPerim: false, customPerimeter: "", innerLength: "", innerWidth: "", hasInnerEdging: false },
   ]);
+  const [expandedId, setExpandedId] = useState<number>(1);
 
   // Helper to update a field of a specific worktop
   const updateWorktop = (id: number, field: keyof Worktop, value: string | boolean) => {
@@ -34,10 +35,11 @@ const WorktopCalculator: React.FC = () => {
 
   // Add a new blank worktop
   const addWorktop = () => {
+    const newId = Date.now();
     setWorktops((prev) => [
       ...prev,
       {
-        id: Date.now(),
+        id: newId,
         length: "",
         width: "",
         useCustomPerim: false,
@@ -47,11 +49,16 @@ const WorktopCalculator: React.FC = () => {
         hasInnerEdging: false,
       },
     ]);
+    setExpandedId(newId);
   };
 
   // Remove a worktop by id
   const removeWorktop = (id: number) => {
     setWorktops((prev) => prev.filter((wt) => wt.id !== id));
+    if (expandedId === id && worktops.length > 1) {
+      const remaining = worktops.filter((wt) => wt.id !== id);
+      setExpandedId(remaining[0].id);
+    }
   };
 
   // Calculations per worktop
@@ -66,26 +73,17 @@ const WorktopCalculator: React.FC = () => {
 
   const calculateEdgeFinishCost = (perimeter: number) => perimeter * 3.5; // €3.50 per meter
 
-  // Export CSV for all worktops
+  // Export CSV: only ID, length, width, price
   const exportCSV = () => {
-    const rows: string[][] = [["ID", "Length(cm)", "Width(cm)", "Area(m²)", "Perimeter(m)", "Panel Cost(€)", "Edge Cost(€)", "Inner Length(cm)", "Inner Width(cm)", "Inner Edging"]];
-    worktops.forEach((wt) => {
+    const rows: string[][] = [["Worktop ID", "Length(cm)", "Width(cm)", "Price(€)"]];
+    worktops.forEach((wt, idx) => {
       const area = calculateArea(wt);
       const perimeter = calculatePerimeter(wt);
       const panelCost = calculatePanelCost(area);
       const edgeCost = calculateEdgeFinishCost(perimeter);
-      rows.push([
-        wt.id.toString(),
-        wt.length,
-        wt.width,
-        area.toFixed(2),
-        perimeter.toFixed(2),
-        panelCost.toFixed(2),
-        edgeCost.toFixed(2),
-        wt.innerLength,
-        wt.innerWidth,
-        wt.hasInnerEdging ? "Yes" : "No",
-      ]);
+      const price = panelCost + edgeCost;
+      const idStr = `worktop${idx + 1}`;
+      rows.push([idStr, wt.length, wt.width, price.toFixed(2)]);
     });
     const csvContent = rows.map((r) => r.join(",")).join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8" });
@@ -109,14 +107,13 @@ const WorktopCalculator: React.FC = () => {
       const perimeter = calculatePerimeter(wt);
       const panelCost = calculatePanelCost(area);
       const edgeCost = calculateEdgeFinishCost(perimeter);
+      const price = panelCost + edgeCost;
+      const idStr = `worktop${idx + 1}`;
       const lines = [
-        `Worktop #${idx + 1} (ID:${wt.id})`,
+        `Worktop #${idx + 1} (ID:${idStr})`,
         `  Length (cm): ${wt.length}`,
         `  Width (cm): ${wt.width}`,
-        `  Area (m²): ${area.toFixed(2)}`,
-        `  Perimeter (m): ${perimeter.toFixed(2)}`,
-        `  Panel Cost (€): ${panelCost.toFixed(2)}`,
-        `  Edge Finish Cost (€): ${edgeCost.toFixed(2)}`,
+        `  Price (€): ${price.toFixed(2)}`,
         `  Inner Length (cm): ${wt.innerLength}`,
         `  Inner Width (cm): ${wt.innerWidth}`,
         `  Inner Edging: ${wt.hasInnerEdging ? "Yes" : "No"}`,
@@ -182,204 +179,176 @@ const WorktopCalculator: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {worktops.map((wt) => {
-        const area = calculateArea(wt);
-        const autoPerim = calculateAutoPerimeter(wt);
-        const perimeter = calculatePerimeter(wt);
-        const panelCost = calculatePanelCost(area);
-        const edgeCost = calculateEdgeFinishCost(perimeter);
+      {worktops.map((wt, index) => {
+        const isExpanded = wt.id === expandedId;
+        const idx = index;
         return (
-          <div
-            key={wt.id}
-            className="relative max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md space-y-6"
-          >
-            <button
-              onClick={() => removeWorktop(wt.id)}
-              className="absolute top-2 right-2 text-gray-500 hover:text-red-600"
-            >
-              <X size={20} />
-            </button>
-            <h2 className="text-xl font-semibold">Worktop #{wt.id}</h2>
-            <div className="grid grid-cols-3 gap-4">
-              {/* Inputs column */}
-              <div className="col-span-2">
-                <h3 className="text-lg font-medium">Panel Cut Size</h3>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label
-                      htmlFor={`length-${wt.id}`}
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Length (cm)
-                    </label>
-                    <input
-                      id={`length-${wt.id}`}
-                      type="number"
-                      min="0"
-                      value={wt.length}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        updateWorktop(wt.id, "length", e.target.value)
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                      placeholder="e.g. 200"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`width-${wt.id}`}
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Width (cm)
-                    </label>
-                    <input
-                      id={`width-${wt.id}`}
-                      type="number"
-                      min="0"
-                      value={wt.width}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        updateWorktop(wt.id, "width", e.target.value)
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                      placeholder="e.g. 60"
-                    />
-                  </div>
-                </div>
-                {/* Area & Perimeter */}
-                <div className="grid grid-cols-2 gap-4 items-end pt-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Area (m²)
-                    </label>
-                    <div className="mt-1 p-2 bg-gray-100 rounded-md text-lg">
-                      {area.toFixed(2)}
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        id={`useCustomPerim-${wt.id}`}
-                        type="checkbox"
-                        checked={wt.useCustomPerim}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          updateWorktop(wt.id, "useCustomPerim", e.target.checked)
-                        }
-                        className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                      />
-                      <label
-                        htmlFor={`useCustomPerim-${wt.id}`}
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Use custom perimeter
-                      </label>
-                    </div>
-                    {wt.useCustomPerim ? (
-                      <input
-                        type="number"
-                        min="0"
-                        value={wt.customPerimeter}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                          updateWorktop(wt.id, "customPerimeter", e.target.value)
-                        }
-                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                        placeholder="Custom perimeter (m)"
-                      />
-                    ) : (
-                      <div className="mt-1 p-2 bg-gray-100 rounded-md text-lg">
-                        {autoPerim.toFixed(2)} m
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {/* Inner Cut */}
-                <h3 className="text-lg font-medium pt-4">Inner Cut / Sink / Hob</h3>
-                <div className="grid grid-cols-2 gap-4 pt-2">
-                  <div>
-                    <label
-                      htmlFor={`innerLength-${wt.id}`}
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Length (cm)
-                    </label>
-                    <input
-                      id={`innerLength-${wt.id}`}
-                      type="number"
-                      min="0"
-                      value={wt.innerLength}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        updateWorktop(wt.id, "innerLength", e.target.value)
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                      placeholder="e.g. 50"
-                    />
-                  </div>
-                  <div>
-                    <label
-                      htmlFor={`innerWidth-${wt.id}`}
-                      className="block text-sm font-medium text-gray-700"
-                    >
-                      Width (cm)
-                    </label>
-                    <input
-                      id={`innerWidth-${wt.id}`}
-                      type="number"
-                      min="0"
-                      value={wt.innerWidth}
-                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                        updateWorktop(wt.id, "innerWidth", e.target.value)
-                      }
-                      className="mt-1 block w-full border border-gray-300 rounded-md p-2"
-                      placeholder="e.g. 40"
-                    />
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 pt-2">
-                  <input
-                    id={`innerEdging-${wt.id}`}
-                    type="checkbox"
-                    checked={wt.hasInnerEdging}
-                    onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                      updateWorktop(wt.id, "hasInnerEdging", e.target.checked)
-                    }
-                    className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor={`innerEdging-${wt.id}`}
-                    className="text-sm font-medium text-gray-700"
-                  >
-                    Add edging/finishing to inner cut
-                  </label>
-                </div>
-
-                {/* Result Boxes */}
-                <div className="grid grid-cols-2 gap-4 pt-4">
-                  <div className="rounded-lg bg-indigo-50 p-4 flex flex-col justify-center">
-                    <span className="text-sm uppercase tracking-wide text-gray-600">
-                      Panel Cost
-                    </span>
-                    <span className="text-2xl font-bold text-indigo-800">
-                      € {panelCost.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="rounded-lg bg-indigo-50 p-4 flex flex-col justify-center">
-                    <span className="text-sm uppercase tracking-wide text-gray-600">
-                      Edge Finish Cost
-                    </span>
-                    <span className="text-2xl font-bold text-indigo-800">
-                      € {edgeCost.toFixed(2)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* SVG Preview Column */}
-              <div className="flex justify-center items-center">
-                {renderSVGPreview(wt)}
+          <div key={wt.id} className="max-w-2xl mx-auto bg-white rounded-lg shadow-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-semibold">Worktop #{idx + 1}</h2>
+              <div className="flex items-center gap-2">
+                {isExpanded ? (
+                  <button onClick={() => setExpandedId(-1)} className="text-gray-600 hover:text-gray-800">
+                    <ChevronUp size={20} />
+                  </button>
+                ) : (
+                  <button onClick={() => setExpandedId(wt.id)} className="text-gray-600 hover:text-gray-800">
+                    <ChevronDown size={20} />
+                  </button>
+                )}
+                <button onClick={() => removeWorktop(wt.id)} className="text-gray-600 hover:text-red-600">
+                  <X size={20} />
+                </button>
               </div>
             </div>
+            {isExpanded && (
+              <div className="flex flex-col md:flex-row p-6 space-y-6 md:space-y-0 md:space-x-6">
+                {/* Left: inputs and results */}
+                <div className="md:w-2/3 space-y-6">
+                  <h3 className="text-lg font-medium">Panel Cut Size</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor={`length-${wt.id}`} className="block text-sm font-medium text-gray-700">
+                        Length (cm)
+                      </label>
+                      <input
+                        id={`length-${wt.id}`}
+                        type="number"
+                        min="0"
+                        value={wt.length}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          updateWorktop(wt.id, "length", e.target.value)
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        placeholder="e.g. 200"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`width-${wt.id}`} className="block text-sm font-medium text-gray-700">
+                        Width (cm)
+                      </label>
+                      <input
+                        id={`width-${wt.id}`}
+                        type="number"
+                        min="0"
+                        value={wt.width}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          updateWorktop(wt.id, "width", e.target.value)
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        placeholder="e.g. 60"
+                      />
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 items-end">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700">Area (m²)</label>
+                      <div className="mt-1 p-2 bg-gray-100 rounded-md text-lg">
+                        {calculateArea(wt).toFixed(2)}
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          id={`useCustomPerim-${wt.id}`}
+                          type="checkbox"
+                          checked={wt.useCustomPerim}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            updateWorktop(wt.id, "useCustomPerim", e.target.checked)
+                          }
+                          className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                        />
+                        <label htmlFor={`useCustomPerim-${wt.id}`} className="text-sm font-medium text-gray-700">
+                          Use custom perimeter
+                        </label>
+                      </div>
+                      {wt.useCustomPerim ? (
+                        <input
+                          type="number"
+                          min="0"
+                          value={wt.customPerimeter}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                            updateWorktop(wt.id, "customPerimeter", e.target.value)
+                          }
+                          className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                          placeholder="Custom perimeter (m)"
+                        />
+                      ) : (
+                        <div className="mt-1 p-2 bg-gray-100 rounded-md text-lg">
+                          {calculateAutoPerimeter(wt).toFixed(2)} m
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-medium">Inner Cut / Sink / Hob</h3>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label htmlFor={`innerLength-${wt.id}`} className="block text-sm font-medium text-gray-700">
+                        Length (cm)
+                      </label>
+                      <input
+                        id={`innerLength-${wt.id}`}
+                        type="number"
+                        min="0"
+                        value={wt.innerLength}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          updateWorktop(wt.id, "innerLength", e.target.value)
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        placeholder="e.g. 50"
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor={`innerWidth-${wt.id}`} className="block text-sm font-medium text-gray-700">
+                        Width (cm)
+                      </label>
+                      <input
+                        id={`innerWidth-${wt.id}`}
+                        type="number"
+                        min="0"
+                        value={wt.innerWidth}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                          updateWorktop(wt.id, "innerWidth", e.target.value)
+                        }
+                        className="mt-1 block w-full border border-gray-300 rounded-md p-2"
+                        placeholder="e.g. 40"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input
+                      id={`innerEdging-${wt.id}`}
+                      type="checkbox"
+                      checked={wt.hasInnerEdging}
+                      onChange={(e: ChangeEvent<HTMLInputElement>) =>
+                        updateWorktop(wt.id, "hasInnerEdging", e.target.checked)
+                      }
+                      className="h-4 w-4 text-indigo-600 border-gray-300 rounded"
+                    />
+                    <label htmlFor={`innerEdging-${wt.id}`} className="text-sm font-medium text-gray-700">
+                      Add edging/finishing to inner cut
+                    </label>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-4">
+                    <div className="rounded-lg bg-indigo-50 p-4 flex flex-col justify-center">
+                      <span className="text-sm uppercase tracking-wide text-gray-600">Panel Cost</span>
+                      <span className="text-2xl font-bold text-indigo-800">€ {calculatePanelCost(calculateArea(wt)).toFixed(2)}</span>
+                    </div>
+                    <div className="rounded-lg bg-indigo-50 p-4 flex flex-col justify-center">
+                      <span className="text-sm uppercase tracking-wide text-gray-600">Edge Finish Cost</span>
+                      <span className="text-2xl font-bold text-indigo-800">€ {calculateEdgeFinishCost(calculatePerimeter(wt)).toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                {/* Right: SVG Preview */}
+                <div className="md:w-1/3 flex justify-center items-center">
+                  {renderSVGPreview(wt)}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
-
       {/* Add another worktop button */}
       <div className="flex justify-center">
         <button
@@ -389,7 +358,6 @@ const WorktopCalculator: React.FC = () => {
           <Plus size={16} /> Add Worktop
         </button>
       </div>
-
       {/* Export all */}
       <div className="flex justify-center space-x-4 pt-6">
         <button
