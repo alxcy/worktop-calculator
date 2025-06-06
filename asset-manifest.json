@@ -1,21 +1,21 @@
 {
   "files": {
-    "main.css": "/worktop-calculator/static/css/main.62894f0d.css",
-    "main.js": "/worktop-calculator/static/js/main.a7653907.js",
+    "main.css": "/worktop-calculator/static/css/main.b9ee9e51.css",
+    "main.js": "/worktop-calculator/static/js/main.dfd9702c.js",
     "static/js/239.656e2e03.chunk.js": "/worktop-calculator/static/js/239.656e2e03.chunk.js",
     "static/js/977.4d93b94f.chunk.js": "/worktop-calculator/static/js/977.4d93b94f.chunk.js",
     "static/js/455.9b470b37.chunk.js": "/worktop-calculator/static/js/455.9b470b37.chunk.js",
     "static/js/453.c14df01b.chunk.js": "/worktop-calculator/static/js/453.c14df01b.chunk.js",
     "index.html": "/worktop-calculator/index.html",
-    "main.62894f0d.css.map": "/worktop-calculator/static/css/main.62894f0d.css.map",
-    "main.a7653907.js.map": "/worktop-calculator/static/js/main.a7653907.js.map",
+    "main.b9ee9e51.css.map": "/worktop-calculator/static/css/main.b9ee9e51.css.map",
+    "main.dfd9702c.js.map": "/worktop-calculator/static/js/main.dfd9702c.js.map",
     "239.656e2e03.chunk.js.map": "/worktop-calculator/static/js/239.656e2e03.chunk.js.map",
     "977.4d93b94f.chunk.js.map": "/worktop-calculator/static/js/977.4d93b94f.chunk.js.map",
     "455.9b470b37.chunk.js.map": "/worktop-calculator/static/js/455.9b470b37.chunk.js.map",
     "453.c14df01b.chunk.js.map": "/worktop-calculator/static/js/453.c14df01b.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.62894f0d.css",
-    "static/js/main.a7653907.js"
+    "static/css/main.b9ee9e51.css",
+    "static/js/main.dfd9702c.js"
   ]
 }
