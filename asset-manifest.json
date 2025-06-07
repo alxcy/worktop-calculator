@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/worktop-calculator/static/css/main.2c216ec4.css",
-    "main.js": "/worktop-calculator/static/js/main.e70e856e.js",
+    "main.css": "/worktop-calculator/static/css/main.5d5b1af0.css",
+    "main.js": "/worktop-calculator/static/js/main.654f5500.js",
     "static/js/453.354ab249.chunk.js": "/worktop-calculator/static/js/453.354ab249.chunk.js",
     "static/media/logo.png": "/worktop-calculator/static/media/logo.4c8aca855f76a372bc0b.png",
     "index.html": "/worktop-calculator/index.html",
-    "main.2c216ec4.css.map": "/worktop-calculator/static/css/main.2c216ec4.css.map",
-    "main.e70e856e.js.map": "/worktop-calculator/static/js/main.e70e856e.js.map",
+    "main.5d5b1af0.css.map": "/worktop-calculator/static/css/main.5d5b1af0.css.map",
+    "main.654f5500.js.map": "/worktop-calculator/static/js/main.654f5500.js.map",
     "453.354ab249.chunk.js.map": "/worktop-calculator/static/js/453.354ab249.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.2c216ec4.css",
-    "static/js/main.e70e856e.js"
+    "static/css/main.5d5b1af0.css",
+    "static/js/main.654f5500.js"
   ]
 }
